@@ -15,6 +15,7 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSessao(session);
+      if (session) buscarUsuarios();
     });
 
     supabase.auth.onAuthStateChange((_event, session) => {
@@ -24,23 +25,28 @@ export default function App() {
   }, []);
 
   const buscarUsuarios = async () => {
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .order('created_at', { ascending: false });
+    if (sessao && sessao.user) {
+      const { user } = sessao;
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('user_id', user.id)  // Filtra para mostrar apenas os dados do usuário logado
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error(error);
-    } else {
-      setUsuarios(data);
+      if (error) {
+        console.error(error);
+      } else {
+        setUsuarios(data);
+      }
     }
   };
 
   const cadastrarUsuario = async () => {
-    if (primeiroNome && sobrenome && idade) {
+    if (primeiroNome && sobrenome && idade && sessao && sessao.user) {
+      const { user } = sessao;
       const { data, error } = await supabase
         .from('usuarios')
-        .insert([{ primeiro_nome: primeiroNome, sobrenome: sobrenome, idade: parseInt(idade, 10) }]);
+        .insert([{ primeiro_nome: primeiroNome, sobrenome: sobrenome, idade: parseInt(idade, 10), user_id: user.id }]);
 
       if (error) {
         console.error(error);
@@ -147,7 +153,6 @@ export default function App() {
     </View>
   );
 }
-
 
 const estilos = StyleSheet.create({
   container: {
